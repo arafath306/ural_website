@@ -161,6 +161,52 @@ export const useJsApiLoader = () => {
 };
 
 
-export const DirectionsService = (props: any) => null;
-export const DirectionsRenderer = (props: any) => null;
 export type Libraries = string[];
+
+export const DirectionsService = ({ options, callback }: any) => {
+  useEffect(() => {
+    if (!options?.origin || !options?.destination || !callback) return;
+    
+    let isMounted = true;
+    const fetchRoute = async () => {
+      try {
+        const originLng = typeof options.origin.lng === 'function' ? options.origin.lng() : (options.origin.lng || options.origin[1]);
+        const originLat = typeof options.origin.lat === 'function' ? options.origin.lat() : (options.origin.lat || options.origin[0]);
+        const destLng = typeof options.destination.lng === 'function' ? options.destination.lng() : (options.destination.lng || options.destination[1]);
+        const destLat = typeof options.destination.lat === 'function' ? options.destination.lat() : (options.destination.lat || options.destination[0]);
+        
+        if (!originLng || !originLat || !destLng || !destLat) return;
+        
+        const url = `https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${destLng},${destLat}?overview=full&geometries=geojson`;
+        
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          const coords = route.geometry.coordinates.map((c: any) => ({ lat: c[1], lng: c[0] }));
+          
+          if (isMounted) {
+            callback({ routes: [{ overview_path: coords }] }, 'OK');
+          }
+        }
+      } catch (err) {
+        console.error('OSRM Route fetch error', err);
+      }
+    };
+    
+    fetchRoute();
+    return () => { isMounted = false; };
+  }, [options?.origin, options?.destination, callback]);
+
+  return null;
+};
+
+export const DirectionsRenderer = ({ directions, options }: any) => {
+  if (!directions || !directions.routes || directions.routes.length === 0) return null;
+  const path = directions.routes[0].overview_path;
+  
+  if (!path || path.length === 0) return null;
+  
+  return <Polyline path={path} options={{ strokeColor: options?.polylineOptions?.strokeColor || '#007AFF', strokeWeight: options?.polylineOptions?.strokeWeight || 4 }} />;
+};
