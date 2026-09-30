@@ -159,3 +159,8 @@ export const Polyline = ({ path, options }: any) => {
 export const useJsApiLoader = () => {
   return { isLoaded: true, loadError: null };
 };
+
+
+export const DirectionsService = (props: any) => null;
+export const DirectionsRenderer = (props: any) => null;
+export type Libraries = string[];
